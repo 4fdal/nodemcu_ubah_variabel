@@ -1,0 +1,166 @@
+
+--------------------------------------
+PHP
+
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE');
+header('Access-Control-Allow-Header: Jenis-Konten, X-Auth-Token, Asal, Otorisasi');
+
+$conn = new mysqli($servername, $username, $password, $dbname);
+if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
+$conn->query($sql_script) === TRUE
+$conn->close();
+
+---------------------------------------
+NODEMCU
+#include <ESP8266WebServer.h>
+/** 
+ *  server.method() == HTTP_GET
+ *  server.send(200, "text/html", response)
+ *  server.uri()
+ *  server.args()
+ *  server.onNotFound ( [](){ ... } )
+ *  server.begin()
+ *  HTTP_GET, HTTP_PUT, HTTP_DELETE, HTTP_POST
+ *  server.hasArg("params") <<-- mengambil data request client
+ *  server.hasHeader("Cookie")
+ *  server.sendHeader("Location","/login")
+ */
+
+server.on("/hostpot", HTTP_POST, [](){
+	String ssid = server.arg("ssid");
+	String password = server.arg("password");
+	if(!ssid.equalsIgnoreCase("") && !password.equalsIgnoreCase("")){
+	  myHospotSSID = ssid ;
+	  myHospotPASSWORD = password ;
+	  runHostpot(myHospotSSID, myHospotPASSWORD);
+	  return server.send(200, "text/html", "<script> alert('berhasil ubah hospot wifi'); window.location = '/'; </script>");
+	}
+	return server.send(200, "text/html", "<script> alert('ssid atau password salah'); window.location = '/'; </script>");;
+});
+
+
+server.handleClient();
+
+--------------------------------------
+NODEMCU REQUEST API
+#include <ESP8266HTTPClient.h>
+
+http.begin(myUrlPI+"/api/v1/absensi");
+http.addHeader("Content-Type","application/x-www-form-urlencoded");
+http.addHeader("Authorization", myMCUkey); //++
+String dataRequest = "key_anggota="+keyAnggota+"&unique_phone_key="+phoneKey+"&event="+idEvent+"&nodemcu="+myIdNodemuc ;
+int statusCode = http.POST(dataRequest);
+if( statusCode == -1 )
+
+#include <Arduino_JSON.h>
+
+
+---------------------------------------
+NODEMCU KONEK WIFI DAN BUAT HOSTPOT
+#include <ESP8266WiFi.h>
+
+Konek WIFI => WiFi.begin(ssid, password)
+Buat Hospot => WiFi.softAP(ssid, password)
+
+
+
+---------------------------------------
+APLIKASI ANDROID 
+
+implementation 'com.android.volley:volley:1.1.1'
+
+#REQUEST API 
+public interface MyRequest {
+	public int getMethod();
+	public String getUrl() ;
+	public Map<String, String> param(Map<String, String> data);
+	public void response(Object response) throws JSONException;
+	public void err(VolleyError error, String dataMsgError) throws JSONException;
+}
+
+private MyRequest myRequest ;
+private Context context ;
+
+public RequestURL(Context context, final MyRequest myRequest){
+	this.myRequest = myRequest ;
+	this.context = context ;
+
+	Volley.newRequestQueue(this.context).add(new StringRequest(
+			myRequest.getMethod(),
+			myRequest.getUrl(),
+			new Response.Listener<String>() {
+				@Override
+				public void onResponse(String response) {
+					try {
+						myRequest.response(response);
+					} catch (JSONException e) {
+						e.printStackTrace();
+					}
+				}
+			},
+			new Response.ErrorListener() {
+				@Override
+				public void onErrorResponse(VolleyError error) {
+					NetworkResponse response = error.networkResponse;
+					String dataMsgError = null ;
+					if (error instanceof ServerError && response != null) {
+						try {
+							String res = new String(response.data,
+									HttpHeaderParser.parseCharset(response.headers, "utf-8"));
+							// Now you can use any deserializer to make sense of data
+							dataMsgError = res;
+						} catch (UnsupportedEncodingException e1) {
+							// Couldn't properly decode data to string
+							e1.printStackTrace();
+						}
+					}
+					try {
+						myRequest.err(error, dataMsgError);
+					} catch (JSONException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+	){
+		@Override
+		protected Map<String, String> getParams() throws AuthFailureError {
+			Map<String, String> data = new HashMap<String, String>();
+			return myRequest.param(data);
+		}
+	});
+}
+
+
+#Mamanfast
+
+<uses-permission android:name="android.permission.INTERNET" />
+
+android:usesCleartextTraffic="true"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
